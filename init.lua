@@ -9,8 +9,8 @@ local LabWorkbook = {}
 function LabWorkbook:newExperiment(newConfig)
    -- Creates a new experiment.
 
-   -- Read config file from ~/.lab-notebook-config
-   local config = config.read(path.expanduser("~/.lab-notebook-config")) or {}
+   -- Read config file from ~/.lab-workbook-config
+   local config = config.read(path.expanduser("~/.lab-workbook-config")) or {}
    for k,v in pairs(newConfig) do config[k] = v end
 
    -- Connect to S3
