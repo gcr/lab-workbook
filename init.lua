@@ -45,7 +45,6 @@ function LabWorkbook:S3Put(title, data)
    local key = self:getS3KeyFor(title)
    local result = self.s3:put(key, data, "public-read")
    assert(result.resultCode == 200, string.format("Could not save result to S3. Result was %s",json.encode(result)))
-   print(result)
    return key
 end
 
