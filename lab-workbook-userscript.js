@@ -86,6 +86,7 @@ WorkbookAutomaticPlot.prototype.onBound = function(){
   var self = this;
   GM_xmlhttpRequest({method: "GET",
                      url: this.url,
+                     ignoreCache: true,
                      onload: function(xhr){
                        $(self.element).on('click', function(e){console.log("CLICKY");return e.stopPropagation();});
                        var options = $.parseJSON(xhr.responseText);

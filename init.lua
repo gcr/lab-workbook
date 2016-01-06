@@ -89,6 +89,7 @@ function newTag()
    -- Generate a random tag
    local result = {}
    local choices = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+   math.randomseed(tostring(os.time())..tostring(os.clock()))
    for i=1,10 do
       local j = math.ceil(math.random()*#choices)
       result[i] = string.sub(choices,j,j)
