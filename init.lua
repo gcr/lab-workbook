@@ -49,6 +49,12 @@ function LabWorkbook:S3Put(title, data)
    return key
 end
 
+function LabWorkbook:saveToTrello(title, type)
+   print(" TODO : Save "..title.." to trello!")
+   print("For now, use the following URL:")
+   print(self.s3:getUrlFor(self:getS3KeyFor(title)).."?"..type)
+end
+
 
 function LabWorkbook:plot(title, data, opts)
    opts = opts or {}
@@ -72,8 +78,9 @@ function LabWorkbook:plot(title, data, opts)
       options.xlabel = options.xlabel or options.labels[1]
    end
 
-   -- Save to S3
-   return self:S3Put(title, json.encode(options))
+   -- Save to S3 and Trello
+   self:S3Put(title, json.encode(options))
+   self:saveToTrello(title, "WORKBOOK_PLOT")
 end
 
 
