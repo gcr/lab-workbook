@@ -1,9 +1,9 @@
-local s3=require 's3'
-local config=require 'pl.config'
-local path=require 'pl.path'
-local json=require 'cjson'
-
-
+local s3 = require 's3'
+local config = require 'pl.config'
+local path = require 'pl.path'
+local json = require 'cjson'
+local Trello = require 'trello'
+local url = require 'net.url'
 
 local LabWorkbook = {}
 function LabWorkbook:newExperiment(newConfig)
@@ -22,6 +22,10 @@ function LabWorkbook:newExperiment(newConfig)
    config.bucketPrefix = config.bucketPrefix or ""
    -- ^ Should NOT start with '/'. Should END with '/' if you want to
    -- store results into a 'folder'.
+
+   -- Assert that we can connect to Trello
+   assert(config.trelloToken, "Please get a Trello token (see the README file)")
+   assert(config.trelloBoard, "Please specify the name of the Trello board")
 
    config.timestamp = os.date("%Y%m%d")
    config.tag = newTag()
@@ -52,12 +56,41 @@ function LabWorkbook:S3Put(title, data)
    return key
 end
 
-function LabWorkbook:saveToTrello(title, type)
-   print(" TODO : Save "..title.." to trello!")
-   print("For now, use the following URL:")
-   print(self.s3:getUrlFor(self:getS3KeyFor(title)).."?"..type)
+function LabWorkbook:getTrelloCard()
+   -- Returns either our Trello card, or creates a new Trello card. :-)
+   if self.card then
+      return self.card
+   end
+   -- Otherwise: Gotta make a new card.
+   local board = nil
+   for i,b in ipairs(Trello:connect{token=self.trelloToken}:boards()) do
+      if b.name == self.trelloBoard then
+         board = b
+      end
+   end
+   assert(board, string.format("Could not find a Trello board with the name '%s'",self.trelloBoard))
+   local lists = board:lists()
+   assert(#lists > 0, string.format("No lists on %s",self.trelloBoard))
+   self.card = lists[1]:newCard(self.experimentName)
+   return self.card
 end
 
+function LabWorkbook:saveToTrello(title, type)
+   -- Save this result to Trello.
+   local card = self:getTrelloCard()
+   local S3url = self.s3:getUrlFor(self:getS3KeyFor(title))
+   local u = url.parse(S3url) -- warning: do not use this directly!
+   u.query[type]=1
+   S3url = S3url .. "?" .. tostring(u.query) -- avoids terrible escaping bugs!
+   -- If this result is in our cached description, don't hit the Trello API
+   if not string.find(card.desc, S3url, 1, true) then
+      -- Save it!
+      card:refresh()
+      if not string.find(card.desc, S3url, 1, true) then
+         card:writeDesc(card.desc .. "\n" .. S3url)
+      end
+   end
+end
 
 function LabWorkbook:plot(title, data, opts)
    opts = opts or {}
