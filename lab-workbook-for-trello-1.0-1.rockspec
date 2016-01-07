@@ -18,5 +18,6 @@ build = {
    type = "builtin",
    modules = {
       ['lab-workbook-for-trello.init'] = 'init.lua',
+      ['lab-workbook-for-trello.trello'] = 'trello.lua',
    }
 }
