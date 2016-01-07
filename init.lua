@@ -2,7 +2,7 @@ local s3 = require 's3'
 local config = require 'pl.config'
 local path = require 'pl.path'
 local json = require 'cjson'
-local Trello = require 'trello'
+local Trello = require 'lab-workbook-for-trello.trello'
 local url = require 'net.url'
 
 local LabWorkbook = {}
