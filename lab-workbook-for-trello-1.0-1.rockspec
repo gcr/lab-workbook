@@ -12,6 +12,7 @@ description = {
 
 dependencies = {
     "s3 >= 1.0-3",
+    "luasec",
 }
 
 build = {
