@@ -17,12 +17,9 @@ function LabWorkbook:newExperiment(newConfig)
    -- ^ Should END with '/' if you want to store results into a
    -- folder.
 
-   -- Make some new data for us
-   config.timestamp = os.date("%Y%m%d-%H%M")
-   config.tag = util.newTag()
-
    config:testS3()
 
+   config.tag = config.tag or util.newTag()
    print(string.format('\n\n\27[1m---- Experiment Tag: \27[31m%s\27[0m\n\n',
                        config.tag))
 
@@ -38,12 +35,11 @@ function LabWorkbook:testS3()
    end
 end
 
-function LabWorkbook:getS3KeyFor(name)
-   return string.format("%s%s-%s/%s",
+function LabWorkbook:getS3KeyFor(artifactName)
+   return string.format("%s%s/%s",
                         self.bucketPrefix,
-                        self.timestamp,
                         self.tag,
-                        name
+                        artifactName
                      )
 end
 
@@ -153,6 +149,31 @@ function LabWorkbook:saveTorch(artifactName, value)
                       function(filename)
                          torch.save(filename, value)
                       end)
+end
+
+function LabWorkbook:saveGitStatus(artifactName)
+   -- Saves the exact version of the code you're starting from.
+   artifactName = artifactName or "Source"
+   local f = io.popen("git log -n 1")
+   local git_log = f:read("*a")
+   f:close()
+   self:S3PutTempFile(artifactName..".git-current-commit",
+                      function(filename)
+                         local f = io.open(filename,"w")
+                         f:write(git_log)
+                         f:close()
+                      end)
+   local f = io.popen("git diff HEAD")
+   local git_patch = f:read("*a")
+   f:close()
+   self:S3PutTempFile(artifactName..".git-patch",
+                      function(filename)
+                         local f = io.open(filename,"w")
+                         f:write(git_patch)
+                         f:close()
+                      end)
+
+
 end
 
 
