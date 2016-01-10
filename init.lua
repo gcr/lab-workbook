@@ -2,6 +2,7 @@ local config = require 'pl.config'
 local path = require 'pl.path'
 local json = require 'cjson'
 local util = require 'lab-workbook.util'
+local fs = require 'luarocks.fs'
 
 local LabWorkbook = {}
 function LabWorkbook:newExperiment(newConfig)
@@ -21,6 +22,9 @@ function LabWorkbook:newExperiment(newConfig)
    config.tag = util.newTag()
 
    config:testS3()
+
+   print(string.format('\n\n\27[1m---- Experiment Tag: \27[31m%s\27[0m\n\n',
+                       config.tag))
 
    return config
 end
@@ -136,13 +140,21 @@ end
 -- ------------------ Artifacts ------------------
 
 function LabWorkbook:saveJSON(artifactName, value)
-   self:S3PutTempFile(artifactName.."json",
+   self:S3PutTempFile(artifactName..".json",
                       function(filename)
-                         local f = io.open(tmpname, "w")
+                         local f = io.open(filename, "w")
                          f:write(json.encode(value))
                          f:close()
                       end)
 end
+
+function LabWorkbook:saveTorch(artifactName, value)
+   self:S3PutTempFile(artifactName..".t7",
+                      function(filename)
+                         torch.save(filename, value)
+                      end)
+end
+
 
 function LabWorkbook:newTimeSeriesLog(artifactName,
                                       fields,
@@ -151,7 +163,7 @@ function LabWorkbook:newTimeSeriesLog(artifactName,
    local csvFilename = os.tmpname()
    print(csvFilename)
    local f = io.open(csvFilename, "w")
-   local counter = saveEvery
+   local counter = saveEvery or 1
    fields[#fields+1] = "Date"
    f:write(table.concat(fields, ",").."\n")
    return function(entries)
@@ -164,7 +176,7 @@ function LabWorkbook:newTimeSeriesLog(artifactName,
              f:flush()
              counter = counter - 1
              if counter == 0 then
-                counter = saveEvery
+                counter = saveEvery or 1
                 self:S3PutFile(artifactName..".csv",
                                csvFilename)
              end
