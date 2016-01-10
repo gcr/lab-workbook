@@ -57,7 +57,6 @@ function LabWorkbook:S3PutFile(artifactName, filename)
    args = args .. string.format(" || echo 'NOTEBOOK WARNING: Could not save '%s' to S3'",
                                 fs.Q(artifactName))
    args = "( "..args.." ) &" -- Run asynchronously :-)
-   print(args)
    os.execute(args)
 end
 function LabWorkbook:S3PutTempFile(artifactName, cb)
@@ -80,7 +79,6 @@ function LabWorkbook:S3PutTempFile(artifactName, cb)
                                 fs.Q(filename)
                              )
    args = "( "..args.." ) &" -- Run asynchronously :-)
-   print(args)
    os.execute(args)
 end
 
@@ -182,7 +180,6 @@ function LabWorkbook:newTimeSeriesLog(artifactName,
                                       saveEvery)
    -- Creates a new streaming log to be saved to S3, in CSV format
    local csvFilename = os.tmpname()
-   print(csvFilename)
    local f = io.open(csvFilename, "w")
    local counter = saveEvery or 1
    fields[#fields+1] = "Date"
