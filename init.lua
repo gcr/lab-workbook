@@ -188,7 +188,7 @@ function LabWorkbook:newTimeSeriesLog(artifactName,
    fields[#fields+1] = "Date"
    f:write(table.concat(fields, ",").."\n")
    return function(entries)
-             entries.Date = os.date("%+")
+             entries.Date = os.date("!%FT%TZ")
              local line = {}
              for _,f in ipairs(fields) do
                 line[#line+1] = tostring(entries[f])
