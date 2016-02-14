@@ -38,16 +38,16 @@ How to set up
 - **Install the Lua workbook** using Luarocks. At the time of writing,
   this package is not available on the Rocks server, so you must
   install it from github manually.
-
+```
     git clone https://github.com/gcr/lab-workbook lab-workbook
     cd lab-workbook
     luarocks make
-
+```
 - **Configure the workbook** by creating `~/.lab-workbook-config` with
   the following contents:
-
+```
     bucketPrefix = s3://your-bucket/experiments/
-
+```
   where `your-bucket` is the name of your S3 bucket and `experiments/`
   is the S3 prefix to save all experiments to. Be sure this path ends
   with `/` if you want to save experiments within this folder!
@@ -58,11 +58,11 @@ How to set up
 - **Install boto and pandas**. [Configure Boto](http://boto.cloudhackers.com/en/latest/getting_started.html#configuring-boto-credentials) so you can use AWS.
 - **Install the Python workbook**. At the time of writing, this
   package is not available on PyPI, so you must install it yourself:
-
+```
     git clone https://github.com/gcr/lab-workbook lab-workbook
     cd lab-workbook
     pip install .
-
+```
 - **Configure the workbook** by creating `~/.lab-workbook-config` with
   the same contents as on your experiment server (see above).
 
@@ -91,8 +91,7 @@ workbook:saveJSON("parameters",
                   {
                     learningRate = 0.001,
                     momentum      = 0.9,
-                    mode          = "sgd",
-                    etc.          = "foobar",
+                    etc           = "your stuff here",
                   })
 
 
@@ -109,26 +108,21 @@ local errorLog = workbook:newTimeSeriesLog("Testing Error",
 
 
 -------- Begin training
-local epoch_count = 0
-local nImagesSeen = 0
 while true do
-    local epoch = dataset:getEpoch()
-    for batch in epoch:getBatches() do
-       nImagesSeen = nImagesSeen + batch:size()
-       -- ...
-       loss = trainer:forwardBackward(model, batch)
+    for batch in dataset:getEpochBatches() do
+       ...
+       loss = optim.sgd(...)
        -------- Save entry into loss log
        lossLog{epoch = epoch + nImagesSeen/dataset:size(),
                loss = loss,
                gradientNorm = model.gradWeights:norm(),
                }
     end
-    epoch_count = epoch_count + 1
+    ...
     -------- Save entry into testing error log
     errorLog{epoch = epoch_count,
              error = trainer:evaluate(model)}
-
-    -------- Save Torch model to S3
+    -------- Upload Torch model to S3
     workbook:saveTorch("model", model)
     workbook:saveTorch("sgdState", sgdState)
 end
@@ -138,7 +132,7 @@ end
 The key ingredients are:
 
 - Create a new experiment by calling `workbook = require('lab-workbook'):newExperiment{}`
-- Save artifacts by calling the `workbook:saveXXXX(...)`
+- Save artifacts by calling the `workbook:saveXXXX(...)` functions
 - Create time series logs by calling `log = workbook:newTimeSeriesLog(...)`. Then, write to the log file with `log{...}`
 
 These three ingredients are all you need from the training side. It's
@@ -170,23 +164,22 @@ From the Torch side, create a new experiment by calling
 `require('lab-workbook'):newExperiment{}`
 The resulting workbook object is tied to a single experiment.
 
-Workbooks a `tag` property that you can use to retrieve the experiment
-tag. This tag is also printed to stdout. Every time you run your
-training script, you should write that experiment tag somewhere!
+Workbooks have a `tag` property that you can use to retrieve the
+experiment tag. This tag is also printed to stdout. Every time you run
+your training script, you should write that experiment tag somewhere!
 
 
 **On the development laptop:**
 
-Use the following Python code to load and explore your experiments.
-
-To load an artifact, call
-`ExperimentRepository()['experiment tag']['artifact name']`
+The following Python code shows how to load experiments and artifacts.
+(spoiler: it's all just `[]`-indexing)
 
 ```python
 import lab_workbook
 wb = lab_workbook.ExperimentRepository()
 
-# Print a list of experiments
+# Print a list of experiments (Note: It's better to just write the tag
+# in your lab notes each time you start off a new training instance)
 print wb[:]
 #=> [<Experiment: 201601201654-OApx8tj3ZU>,
 #    <Experiment: 201602122146-ZN6z9mEs3B>,
@@ -194,14 +187,12 @@ print wb[:]
 #    ...
 #   ]
 
-# (Note: It's better to just write the tag in your lab notes each time
-# you start off a new training instance)
 
 # Fetch a single experiment by indexing its tag.
 experiment = wb['201602122149-PMJ8a76csB']
 
 # Print all artifacts inside the experiment.
-print experiment[:]
+print experiment.list_artifacts()
 #=> ['Source.git-current-commit',
 #    'Source.git-patch',
 #    'Training loss.csv',
@@ -229,21 +220,22 @@ Torch tensors cannot be saved as JSON).
 
 **In the training scripts:**
 `LabWorkbook:saveJSON(artifactName, value)` will immediately encode
-`value` into a JSON object and asynchronously commit the result to S3
+`value` into a JSON object and asynchronously upload the result to S3
 with a name of `artifactName.json`. If there is an error, it will be
 asynchronously printed to stderr.
 
 **On the development laptop:**
-`ExperimentRepository()['experiment-tag']['artifact.json`]` will load
+`ExperimentRepository()['experiment-tag']['artifact.json']` will load
 `artifact` from S3 as a Python dictionary.
 
 
 Torch Model Artifacts
 ---------------------
 
-You can save Torch models directly into S3. (Note: Do not run this
-very often or you will run up your S3 bandwidth fees! I learned this
-the hard way. Mistakes can cost you $100s per month.)
+You can save Torch models directly into S3. (Note: Do not upload large
+models very often or you will run up your S3 bandwidth fees! I learned
+this the hard way. *Misuse of this function can cost you $100s per
+month.*)
 
 **In the training scripts:** `LabWorkbook:saveTorch(artifactName,
 value)` will immediately use `torch.save` to write `value` into a
@@ -396,8 +388,7 @@ into a single Pandas DataFrame object. Each column of the result
 corresponds to a single experiment. The values come from the `field`
 column of each experiment's `artifact.csv`.
 
-Example: Plot the training loss from several related experiments over
-time:
+Example: Plot the `loss` from several related experiments over time:
 ```python
 experiments = collections.OrderedDict([
 ("201601141709-AnY56THQt7", "Nsize=3 (ORIG PAPER), 20 layers"),
@@ -409,8 +400,26 @@ experiments = collections.OrderedDict([
 train_loss = wb.meld_csv(experiments, "Training loss.csv","loss")
 pd.rolling_mean(train_loss, 100)
   .plot(title="Training loss (Rolling mean over 100 batches)",
+        figsize=(20,5),
         xlim=(0,200),
         ylim=(0, 0.5),
         )
 ```
 ![Plot showing five training loss curves from five related experiments all on the same plot](http://i.imgur.com/zOp2EPx.png)
+```python
+print train_loss.head()
+#=>           Nsize=3 (ORIG PAPER), 20 layers  Nsize=5, 32 layers  \
+#    epoch
+#    0.00000                         2.640196            2.775886
+#    0.00256                         2.904888            4.451223
+#    0.00512                         3.285033            5.523656
+#    0.00768                         3.310323            8.113060
+#    0.01024                         3.023435            5.673736
+#
+#             Nsize=7, 44 layers  Nsize=9, 56 layers  Nsize=18, 110 layers
+#    epoch
+#    0.00000            2.716562            3.950236              4.233791
+#    0.00256            4.854539            9.493719              3.638155
+#    0.00512            8.623064            9.278872              2.986166
+#    0.00768           10.269727           11.068035              3.644975
+#    0.01024           10.159962            9.376174              3.004177
