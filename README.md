@@ -160,9 +160,9 @@ training run.
   helps you answer "What was I doing six months ago" without any fuss!
 
 
-From the Torch side, create a new experiment by calling
-`require('lab-workbook'):newExperiment{}`
-The resulting workbook object is tied to a single experiment.
+**In the training scripts:** From the Torch side, create a new
+experiment by calling `require('lab-workbook'):newExperiment{}` The
+resulting workbook object is tied to a single experiment.
 
 Workbooks have a `tag` property that you can use to retrieve the
 experiment tag. This tag is also printed to stdout. Every time you run
