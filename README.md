@@ -3,10 +3,39 @@ Lab Workbook
 
 An organized workflow for your Torch machine learning experiments.
 
+In the natural sciences, researchers keep clear and well-organized
+[laboratory notebooks](https://en.wikipedia.org/wiki/Lab_notebook). A
+lab book is the lifeblood of data provenance: researchers and mentors
+use them to understand *who* performed *which* experiments, *what*
+happened, and *why* the experiments were run in the first place. Many
+industrial research labs require researchers to keep lab books, so
+taking good strong notes is often second-nature.
+
+Not so in the computer sciences! Machine learning is quite similar:
+our experiments can be expensive and time-consuming to run, we may
+have several machines running related projects concurrently, and
+understanding the reason behind running an experiment can be as
+important as understanding the outcome.
+
+However, I notice that many data scientists I work with (myself
+included!) are typically less organized than comparable researchers
+from the natural sciences. We often start experiments willy-nilly
+without bothering to think why they're necessary. It's easy to forget
+to record the results of failures or the state of the environment.
+
+Why shouldn't we keep lab books too? One answer is overhead: data
+provenance tools are typically difficult to set up, requiring changes
+to your tools, your workflow, and in some cases, your source control.
+
+This library presents a **low-overhead**, **simple** way to save and
+analyze results and experiments. It assumes **you use Lua/Torch** to
+run your experiments, **you will save experiments into S3** forever,
+and that **you want to analyze your results later in the IPython
+notebook**.
+
 ![workflow example](lab-workbook.jpeg)
 
-If you have many experiments to run, it can be hard to keep track of
-them. This library solves three problems:
+This library solves three problems:
 
 - **Capturing experimental artifacts** like loss functions, Torch
   models, time series, etc. from your Torch experiments to a permanent
@@ -17,13 +46,17 @@ them. This library solves three problems:
 - **Helping you plan which experiments to run** by keeping each
   experiment separate, immutable, and easily referable.
 
-This library comes in two parts:
+To solve these three problems, this library comes in two parts:
 
 - **Lua code for your training scripts** that saves experimental
   artifacts to S3.
 - **Python code for your development laptop** that loads those
   artifacts from S3 so you can analyze results from an IPython
-  Notebook
+  Notebook.
+
+Note: the current version only includes support for saving results
+into S3 from Lua training scripts. If your training scripts use
+Python...sorry!
 
 How to set up
 =============
@@ -423,3 +456,9 @@ print train_loss.head()
 #    0.00512            8.623064            9.278872              2.986166
 #    0.00768           10.269727           11.068035              3.644975
 #    0.01024           10.159962            9.376174              3.004177
+```
+
+**Real-time monitoring**: Note that time series logs are uploaded
+every `saveEvery` log entries. This makes it quite easy to monitor
+currently-running experiments. just re-evaluate the artifact to
+download it from S3 again.
