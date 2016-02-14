@@ -50,11 +50,11 @@ function LabWorkbook:S3PutFile(artifactName, filename)
    -- WRONG when saving to S3, we will report errors to stderr.
    local args = util.quoteArgs("aws", "s3", "cp", filename,
                                self:getS3KeyFor(artifactName),
-                               "--acl",
-                               "public-read",
+                               -- "--acl",
+                               -- "public-read",
                                "--quiet"
                             )
-   args = args .. string.format(" || echo 'NOTEBOOK WARNING: Could not save '%s' to S3'",
+   args = args .. string.format(" || echo 'WORKBOOK WARNING: Could not save '%s' to S3'",
                                 fs.Q(artifactName))
    args = "( "..args.." ) &" -- Run asynchronously :-)
    os.execute(args)
@@ -69,8 +69,8 @@ function LabWorkbook:S3PutTempFile(artifactName, cb)
    cb(filename)
    local args = util.quoteArgs("aws", "s3", "cp", filename,
                                self:getS3KeyFor(artifactName),
-                               "--acl",
-                               "public-read",
+                               -- "--acl",
+                               -- "public-read",
                                "--quiet"
                             )
    args = args .. string.format(" && rm %s || echo 'NOTEBOOK WARNING: Could not save '%s' to S3. Temporary file is in %s '",
